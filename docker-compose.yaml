@@ -1,0 +1,102 @@
+services:
+  # PostgreSQL for Police Backend
+  postgres-police:
+    image: postgres:16-alpine
+    container_name: thahawuru_postgres_police
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Pass@1234
+      POSTGRES_DB: thahawuru-police
+    ports:
+      - "5432:5432"
+    networks:
+      - thahawuru_network
+
+  # PostgreSQL for Wallet Backend
+  postgres-wallet:
+    image: postgres:16-alpine
+    container_name: thahawuru_postgres_wallet
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Pass@1234
+      POSTGRES_DB: thahawuru-wallet
+    ports:
+      - "5433:5432"
+    networks:
+      - thahawuru_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: thahawuru_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: Pass@1234
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres-police
+      - postgres-wallet
+    networks:
+      - thahawuru_network
+
+  # Police Backend Service (Spring Boot)
+  police-backend:
+    container_name: thahawuru_police_backend
+    build:
+      context: ../police-backend
+      dockerfile: Dockerfile
+    environment:
+      - DATASOURCE_URL="//localhost:5432/thahawuru-police"
+      - DATABASE_USERNAME="postgres"
+      - DATABASE_PASSWORD="Pass@1234"
+      - PORT="6000"
+    ports:
+      - "6000:6000"
+    networks:
+      - thahawuru_network
+
+  # Wallet Backend Service (Spring Boot)
+  wallet-backend:
+    container_name: thahawuru_wallet_backend
+    build:
+      context: ../wallet-backend
+      dockerfile: Dockerfile
+    environment:
+      - MONGODB_DATABASE="thahawuru-wallet"
+      - DATASOURCE_URL="//localhost:5432/thahawuru-wallet"
+      - DATABASE_USERNAME="postgres"
+      - DATABASE_PASSWORD="Pass@1234"
+      - DEP_TOKEN=depAPIAccessToken
+      - PORT="9000"
+    ports:
+      - "9000:9000"
+    networks:
+      - thahawuru_network
+
+  ganache:
+    image: trufflesuite/ganache-cli:v6.12.2
+    command: ["ganache-cli", "-p", "7545"]
+    ports:
+      - "7545:7545"
+    networks:
+      - thahawuru_network
+
+  blockchain-wallet:
+    build:
+      context: ../blockchain-wallet
+      dockerfile: Dockerfile
+    environment:
+      - GANACHE_URL=http://ganache:7545
+      - DEP_TOKEN=depAPIAccessToken
+      # Private key and contract address will be dynamically populated
+    depends_on:
+      - ganache
+    ports:
+      - "8082:8082"
+    networks:
+      - thahawuru_network
+    entrypoint: ["./startup.sh"]
+
+networks:
+  thahawuru_network:
+    driver: bridge
