@@ -73,30 +73,6 @@ services:
     networks:
       - thahawuru_network
 
-  ganache:
-    image: trufflesuite/ganache-cli:v6.12.2
-    command: ["ganache-cli", "-p", "7545"]
-    ports:
-      - "7545:7545"
-    networks:
-      - thahawuru_network
-
-  blockchain-wallet:
-    build:
-      context: ../blockchain-wallet
-      dockerfile: Dockerfile
-    environment:
-      - GANACHE_URL=http://ganache:7545
-      - DEP_TOKEN=depAPIAccessToken
-      # Private key and contract address will be dynamically populated
-    depends_on:
-      - ganache
-    ports:
-      - "8082:8082"
-    networks:
-      - thahawuru_network
-    entrypoint: ["./startup.sh"]
-
 networks:
   thahawuru_network:
     driver: bridge
